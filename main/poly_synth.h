@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 #include "voice.h"
 
@@ -39,7 +40,7 @@ public:
         for (size_t i = 0; i < voices.size(); ++i)
         {
             float startT = (i < startTimes.size()) ? startTimes[i] : 0.0f;
-            int totalSamples = static_cast<int>((startT + holdTimes[i] + 5.0f) * sampleRate);
+            int totalSamples = static_cast<int>(std::round((startT + holdTimes[i] + 5.0f) * sampleRate));
             maxFrames = std::max(maxFrames, totalSamples);
         }
 
@@ -61,7 +62,7 @@ public:
                 float startT = (i < startTimes.size()) ? startTimes[i] : 0.0f;
                 if (startT > 0.0f)
                 {
-                    int startFrame = static_cast<int>(startT * sampleRate);
+                    int startFrame = static_cast<int>(std::round(startT * sampleRate));
                     if (frame == startFrame)
                         voices[i]->noteOn(noteNums[i], velocities[i]);
                 }
@@ -70,7 +71,7 @@ public:
             for (size_t i = 0; i < voices.size(); ++i)
             {
                 float startT = (i < startTimes.size()) ? startTimes[i] : 0.0f;
-                int offFrame = static_cast<int>((startT + holdTimes[i]) * sampleRate);
+                int offFrame = static_cast<int>(std::round((startT + holdTimes[i]) * sampleRate));
                 if (frame == offFrame)
                 {
                     voices[i]->noteOff();
@@ -82,7 +83,7 @@ public:
             for (size_t i = 0; i < voices.size(); ++i)
             {
                 float startT = (i < startTimes.size()) ? startTimes[i] : 0.0f;
-                int startFrame = static_cast<int>(startT * sampleRate);
+                int startFrame = static_cast<int>(std::round(startT * sampleRate));
                 if (frame < startFrame || voices[i]->isActive())
                 {
                     allDone = false;
