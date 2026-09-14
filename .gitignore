@@ -1,0 +1,33 @@
+# ── Visual Studio 编译产物 ──
+*.exe
+*.obj
+*.ilk
+*.pdb
+*.idb
+*.lib
+*.dll
+*.exp
+*.log
+*.tlog
+*.lastbuildstate
+*.pch
+
+# ── Visual Studio 用户/临时文件 ──
+*.suo
+*.user
+*.sdf
+*.opensdf
+*.cachefile
+*.VC.db
+*.VC.opendb
+
+# ── VS Code ──
+.vscode/
+
+# ── 生成的音频输出 ──
+*.wav
+
+# ── Windows 系统文件 ──
+Thumbs.db
+Desktop.ini
+.DS_Store
