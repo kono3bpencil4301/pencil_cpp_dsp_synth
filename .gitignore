@@ -31,3 +31,24 @@
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# CMake build directories and generated files
+build/
+build-*/
+cmake-build*/
+cmake-debug/
+cmake-test/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+install_manifest.txt
+compile_commands.json
+CMakeUserPresets.json
+build.ninja
+rules.ninja
+.ninja_deps
+.ninja_log
+
+# vcpkg installed dependencies
+vcpkg_installed/

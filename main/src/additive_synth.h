@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 class AdditiveWavetableFactory; // 前置声明，实现在 additive_wavetable_factory.h
 
 // 波形类型枚举
