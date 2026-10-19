@@ -75,6 +75,7 @@ int main()
         for (const auto &track : tracks)
         {
             const auto buffer = RenderTrack(track, sampleRate);
+
             const auto outputPath = outputDir / (track.name + ".wav");
 
             GenerateWavFile(outputPath, buffer, sampleRate);

@@ -1,4 +1,6 @@
 #include "synth_renderer.h"
+#include "fir_designer.h"
+#include "fir_filter.h"
 
 #include "voice.h"
 #include "poly_synth.h"
@@ -88,9 +90,18 @@ std::vector<float> RenderTrack(
     }
 
     // 与第五章教程保持一致：四参数 generate。
-    return synth.generate(
+    auto buffer = synth.generate(
         noteNums,
         velocities,
         holdTimes,
         startTimes);
+
+    // 对混合后的整条音轨进行低通滤波，每次渲染使用独立的历史状态。
+    const auto coefficients = FIRDesigner::lowpass(
+        track.filter.cutoff, static_cast<float>(sampleRate), 101);
+    FIRFilter filter(coefficients);
+    for (float &sample : buffer)
+        sample = filter.process(sample);
+
+    return buffer;
 }
