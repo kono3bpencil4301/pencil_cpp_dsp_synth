@@ -20,12 +20,18 @@ struct ADSRConfig
     float release = 1.5f;
 };
 
+struct filterConfig
+{
+    float cutoff = 2000.0f;
+};
+
 struct TrackConfig
 {
     std::string name;
     std::string wavetable = "sine";
     std::string curveType = "linear";
     ADSRConfig adsr;
+    filterConfig filter;
     std::vector<NoteConfig> notes;
 };
 

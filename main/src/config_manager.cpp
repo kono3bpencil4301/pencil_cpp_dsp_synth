@@ -14,15 +14,21 @@ namespace
 {
     json MakeDefaultJson()
     {
-        return {
+        json defaults = {
             {"poly_chord", {{"note", {{"noteNumber", {60, 64, 67}}, {"noteVelocity", {0.8, 0.7, 0.6}}, {"holdTimes", {3.0, 3.0, 3.0}}, {"startTime", {0.0, 0.0, 0.0}}}}, {"ADSR_config", {0.05, 0.3, 0.3, 1.5}}, {"wavetable", "sawtooth"}, {"curveType", "linear"}}},
             {"poly_arpeggio", {{"note", {{"noteNumber", {60, 64, 67, 72}}, {"noteVelocity", {0.8, 0.7, 0.6, 0.5}}, {"holdTimes", {2.0, 2.0, 2.0, 2.0}}, {"startTime", {0.0, 0.8, 1.6, 2.4}}}}, {"ADSR_config", {0.05, 0.3, 0.3, 1.5}}, {"wavetable", "sine"}, {"curveType", "linear"}}}};
+        for (auto &track : defaults)
+            track["cutoff"] = filterConfig{}.cutoff;
+        return defaults;
     }
 
     void ValidateTrack(const TrackConfig &track)
     {
         if (track.notes.empty())
             throw std::runtime_error("Track has no notes: " + track.name);
+
+        if (!std::isfinite(track.filter.cutoff) || track.filter.cutoff <= 0.0f)
+            throw std::runtime_error("Invalid filter cutoff in track: " + track.name);
 
         auto validTime = [](float value)
         {
@@ -67,6 +73,14 @@ namespace
         track.name = name;
         track.wavetable = j.at("wavetable").get<std::string>();
         track.curveType = j.at("curveType").get<std::string>();
+
+        // 截止频率属于整条音轨；旧配置缺省时保留 2000 Hz。
+        if (j.contains("cutoff"))
+        {
+            if (!j.at("cutoff").is_number())
+                throw std::runtime_error("cutoff must be a number: " + name);
+            track.filter.cutoff = j.at("cutoff").get<float>();
+        }
 
         const auto &adsr = j.at("ADSR_config");
         if (!adsr.is_array() || adsr.size() != 4)
