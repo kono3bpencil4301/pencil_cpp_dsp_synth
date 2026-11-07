@@ -175,6 +175,19 @@ ADSR 包络可以控制：**声音随时间的音量变化，让声音拥有"生
 - Resonance
 - Filter Envelope
 
+当前低通输出包括原始音频、FIR、一阶 IIR 和 Biquad，分别以
+`_dry.wav`、`_fir.wav`、`_iir.wav` 和 `_biquad.wav` 结尾。
+在音轨的 JSON 配置中设置 `cutoff`（Hz）和 `resonance`（Biquad 的 Q 值）：
+
+```json
+"cutoff": 1000.0,
+"resonance": 3.0
+```
+
+`resonance` 必须是正数；省略时默认为约 0.707（Butterworth 响应），
+增大 Q 会增强截止频率附近的共振。旧配置无需修改。各 WAV 输出在峰值
+超过 1 时会单独降低增益以避免削波，因此比较响度时需考虑自动增益。
+
 ---
 
 ## Phase 6：MIDI System

@@ -1,6 +1,9 @@
 #include "synth_renderer.h"
 #include "fir_designer.h"
 #include "fir_filter.h"
+#include "iir_designer.h"
+#include "iir_onepole_filter.h"
+#include "iir_biquad_filter.h"
 
 #include "voice.h"
 #include "poly_synth.h"
@@ -54,7 +57,7 @@ namespace
     }
 } // namespace
 
-std::vector<float> RenderTrack(
+TrackRenderResult RenderTrack(
     const TrackConfig &track,
     double sampleRate)
 {
@@ -97,11 +100,21 @@ std::vector<float> RenderTrack(
         startTimes);
 
     // 对混合后的整条音轨进行低通滤波，每次渲染使用独立的历史状态。
-    const auto coefficients = FIRDesigner::lowpass(
-        track.filter.cutoff, static_cast<float>(sampleRate), 101);
-    FIRFilter filter(coefficients);
-    for (float &sample : buffer)
-        sample = filter.process(sample);
+    TrackRenderResult result;
 
-    return buffer;
+    result.dry = buffer;
+    result.fir = firFilter(
+        buffer,
+        FIRDesigner::lowpass(
+            track.filter.cutoff,
+            static_cast<float>(sampleRate),
+            101));
+    OnePoleFilter iir(sampleRate, track.filter.cutoff);
+    result.iir = iir.process(buffer);
+    BiquadFilter biquad;
+    biquad.setCoefficients(IIRDesigner::BiquadLowpass(
+        track.filter.cutoff, sampleRate, track.filter.resonance));
+    result.biquad = biquad.process(buffer);
+
+    return result;
 }

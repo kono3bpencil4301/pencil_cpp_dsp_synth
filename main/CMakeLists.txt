@@ -21,3 +21,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(nlohmann_json)
 
 target_link_libraries(main nlohmann_json::nlohmann_json)
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(biquad_test tests/biquad_test.cpp)
+    target_include_directories(biquad_test PRIVATE src)
+    add_test(NAME biquad_test COMMAND biquad_test)
+endif()

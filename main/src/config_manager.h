@@ -23,6 +23,7 @@ struct ADSRConfig
 struct filterConfig
 {
     float cutoff = 2000.0f;
+    float resonance = 0.70710678f; // Biquad Q；约 0.707 为 Butterworth 响应
 };
 
 struct TrackConfig

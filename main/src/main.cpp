@@ -74,12 +74,18 @@ int main()
 
         for (const auto &track : tracks)
         {
-            const auto buffer = RenderTrack(track, sampleRate);
+            const auto result = RenderTrack(track, sampleRate);
+            const auto writeOutput = [&](const char *suffix, const std::vector<float> &buffer)
+            {
+                const auto outputPath = outputDir / (track.name + suffix + ".wav");
+                GenerateWavFile(outputPath, buffer, sampleRate);
+                std::cout << "Done: " << outputPath.string() << '\n';
+            };
 
-            const auto outputPath = outputDir / (track.name + ".wav");
-
-            GenerateWavFile(outputPath, buffer, sampleRate);
-            std::cout << "Done: " << outputPath.string() << '\n';
+            writeOutput("_dry", result.dry);
+            writeOutput("_fir", result.fir);
+            writeOutput("_iir", result.iir);
+            writeOutput("_biquad", result.biquad);
         }
     }
     catch (const std::exception &e)
