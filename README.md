@@ -164,16 +164,18 @@ ADSR 包络可以控制：**声音随时间的音量变化，让声音拥有"生
 
 ## Phase 5：Digital Filter
 
-状态：📌 Planned
+状态：✅ Completed
 
 目标：实现数字滤波器，塑造声音的频率结构。
 
 内容：
-- Low Pass Filter
-- High Pass Filter
-- Band Pass Filter
-- Resonance
-- Filter Envelope
+- FIR 滤波器
+- 一阶 IIR 滤波器
+- Biquad 共振滤波器
+- Low Pass、High Pass、Band Pass 和 Notch
+- Resonance / Q 参数
+- Filter ADSR 包络
+- 动态 Cutoff 调制
 
 当前低通输出包括原始音频、FIR、一阶 IIR 和 Biquad，分别以
 `_dry.wav`、`_fir.wav`、`_iir.wav` 和 `_biquad.wav` 结尾。
@@ -187,6 +189,14 @@ ADSR 包络可以控制：**声音随时间的音量变化，让声音拥有"生
 `resonance` 必须是正数；省略时默认为约 0.707（Butterworth 响应），
 增大 Q 会增强截止频率附近的共振。旧配置无需修改。各 WAV 输出在峰值
 超过 1 时会单独降低增益以避免削波，因此比较响度时需考虑自动增益。
+
+每个 `Voice` 可以使用独立的 Biquad 滤波器和 Filter ADSR。
+Filter ADSR 通过八度比例调制截止频率，使滤波器参数随音符生命周期变化。
+当前实现支持离线渲染；参数平滑和性能基准测试尚未实现。
+
+教程：
+- [`note/lesson_06/让 C++ 学会过滤声音（1）：从相位抵消到手搓 FIR 数字滤波器.md`](note/lesson_06/让 C++ 学会过滤声音（1）：从相位抵消到手搓 FIR 数字滤波器.md)
+- [`note/lesson_07/让 C++ 塑造音色：从 FIR、IIR 到 Biquad 共振滤波器.md`](note/lesson_07/让 C++ 塑造音色：从 FIR、IIR 到 Biquad 共振滤波器.md)
 
 ---
 
