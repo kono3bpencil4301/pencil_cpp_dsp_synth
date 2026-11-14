@@ -1,6 +1,6 @@
-#include "iir_biquad_filter.h"
-#include "iir_biquad_filter.h"
-#include "iir_designer.h"
+#include "filters/iir_biquad_filter.h"
+#include "filters/iir_biquad_filter.h"
+#include "filters/iir_designer.h"
 
 #include <cmath>
 #include <complex>

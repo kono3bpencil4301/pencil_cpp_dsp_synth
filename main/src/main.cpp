@@ -1,6 +1,8 @@
-#include "config_manager.h"
+#include "config/config_manager.h"
+#include "midi/midi_file_reader.h"
+#include "midi/midi_json_writer.h"
 #include "synth_renderer.h"
-#include "wav_and_pcm.h"
+#include "audio/wav_and_pcm.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,17 +12,21 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <vector>
+
+namespace
+{
+}
 
 // 本章复用前面章节的 WAV Header / 小端写入工具。
 // 这里输入 buffer 为单声道 Float PCM，再复制到 L/R 两个声道。
 void GenerateWavFile(
     const std::filesystem::path &path,
     const std::vector<float> &buffer,
-    double sampleRate)
+    double sampleRate,
+    int channels)
 {
-    constexpr int channels = 2;
-
     // 经典 PCM WAV 使用 32-bit chunk 大小，限制数据长度。
     if (buffer.size() >
         (std::numeric_limits<uint32_t>::max() - 36u) / (channels * 2u))
@@ -64,21 +70,41 @@ int main()
     try
     {
         constexpr double sampleRate = 44100.0;
-        const std::filesystem::path configPath = "config/config.json";
+        const std::filesystem::path configDir = "config";
+        const std::filesystem::path synthConfigPath = configDir / "synth_config.json";
+        const auto midiFile = LoadConfiguredMidiFile(synthConfigPath);
+        const std::filesystem::path midiPath = configDir / midiFile;
+        const std::filesystem::path notesConfigPath =
+            configDir / (std::filesystem::path(midiFile).stem().string() + "_notes.json");
         const std::filesystem::path outputDir = "output";
 
-        EnsureDefaultConfig(configPath);
-        const auto tracks = LoadTracks(configPath);
+        if (!std::filesystem::exists(notesConfigPath))
+        {
+            if (!std::filesystem::exists(midiPath))
+                throw std::runtime_error("Configured MIDI file does not exist: " + midiPath.string());
+            const auto midiSequence = miniaudiodsp::MidiFileReader::load(midiPath);
+            miniaudiodsp::WriteMidiNotesJson(midiSequence, notesConfigPath);
+            if (!std::filesystem::exists(synthConfigPath))
+                miniaudiodsp::WriteDefaultSynthConfigJson(midiSequence, synthConfigPath);
+            std::cout << "Created MIDI notes configuration: " << notesConfigPath.string() << '\n';
+        }
+        else
+        {
+            std::cout << "Using existing MIDI notes: " << notesConfigPath.string() << '\n';
+        }
 
+        const auto project = LoadProjectConfig(synthConfigPath, notesConfigPath);
+
+        std::filesystem::remove_all(outputDir);
         std::filesystem::create_directories(outputDir);
 
-        for (const auto &track : tracks)
+        for (const auto &track : project.tracks)
         {
             const auto result = RenderTrack(track, sampleRate);
             const auto writeOutput = [&](const char *suffix, const std::vector<float> &buffer)
             {
                 const auto outputPath = outputDir / (track.name + suffix + ".wav");
-                GenerateWavFile(outputPath, buffer, sampleRate);
+                GenerateWavFile(outputPath, buffer, sampleRate, project.channels);
                 std::cout << "Done: " << outputPath.string() << '\n';
             };
 

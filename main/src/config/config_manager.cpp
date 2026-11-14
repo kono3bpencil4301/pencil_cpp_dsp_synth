@@ -34,6 +34,14 @@ namespace
             throw std::runtime_error("Invalid filter cutoff in track: " + track.name);
         if (!std::isfinite(track.filter.resonance) || track.filter.resonance <= 0.0f)
             throw std::runtime_error("Invalid filter resonance Q in track: " + track.name);
+        if (track.filter.type != "lowpass" &&
+            track.filter.type != "highpass" &&
+            track.filter.type != "bandpass" &&
+            track.filter.type != "notch")
+            throw std::runtime_error("Invalid filter type in track: " + track.name);
+        if (!std::isfinite(track.voiceFilter.amount) ||
+            track.voiceFilter.amount < 0.0f)
+            throw std::runtime_error("Invalid voice filter amount in track: " + track.name);
 
         auto validTime = [](float value)
         {
@@ -91,6 +99,24 @@ namespace
             if (!j.at("resonance").is_number())
                 throw std::runtime_error("resonance must be a number: " + name);
             track.filter.resonance = j.at("resonance").get<float>();
+        }
+        if (j.contains("type"))
+            track.filter.type = j.at("type").get<std::string>();
+        if (j.contains("voiceFilter"))
+        {
+            const auto &filter = j.at("voiceFilter");
+            track.voiceFilter.enabled = filter.value("enabled", false);
+            track.voiceFilter.amount = filter.value("amount", 2.0f);
+            track.voiceFilter.curveType = filter.value("curveType", "linear");
+            const auto filterAdsr = filter.value(
+                "ADSR_config", json::array({0.05, 0.3, 0.3, 1.5}));
+            if (!filterAdsr.is_array() || filterAdsr.size() != 4)
+                throw std::runtime_error("voiceFilter.ADSR_config needs 4 values: " + name);
+            track.voiceFilter.adsr = {
+                filterAdsr.at(0).get<float>(),
+                filterAdsr.at(1).get<float>(),
+                filterAdsr.at(2).get<float>(),
+                filterAdsr.at(3).get<float>()};
         }
 
         const auto &adsr = j.at("ADSR_config");
@@ -166,4 +192,79 @@ std::vector<TrackConfig> LoadTracks(const std::filesystem::path &path)
     }
 
     return tracks;
+}
+
+ProjectConfig LoadProjectConfig(
+    const std::filesystem::path &synthConfigPath,
+    const std::filesystem::path &notesConfigPath)
+{
+    std::ifstream synthInput(synthConfigPath);
+    if (!synthInput)
+        throw std::runtime_error("Cannot open synth JSON: " + synthConfigPath.string());
+
+    std::ifstream notesInput(notesConfigPath);
+    if (!notesInput)
+        throw std::runtime_error("Cannot open MIDI notes JSON: " + notesConfigPath.string());
+
+    json synthRoot;
+    json notesRoot;
+    synthInput >> synthRoot;
+    notesInput >> notesRoot;
+
+    if (!synthRoot.is_object() || !synthRoot.contains("channels") ||
+        !synthRoot.contains("tracks") || !synthRoot.at("tracks").is_object())
+    {
+        throw std::runtime_error("Invalid synth configuration JSON");
+    }
+    if (!notesRoot.is_object() || notesRoot.empty())
+        throw std::runtime_error("MIDI notes JSON must be a nonempty object");
+
+    const int channels = synthRoot.at("channels").get<int>();
+    if (channels <= 0 || channels > 32)
+        throw std::runtime_error("Audio channels must be between 1 and 32");
+
+    ProjectConfig project;
+    project.channels = channels;
+    for (auto it = notesRoot.begin(); it != notesRoot.end(); ++it)
+    {
+        const auto synthIt = synthRoot.at("tracks").find(it.key());
+        if (synthIt == synthRoot.at("tracks").end())
+            throw std::runtime_error("Missing synth parameters for track: " + it.key());
+        if (!synthIt.value().is_object() || !it.value().is_object())
+            throw std::runtime_error("Invalid track configuration: " + it.key());
+
+        json merged = synthIt.value();
+        merged["note"] = it.value();
+        project.tracks.push_back(ParseTrack(it.key(), merged));
+    }
+
+    return project;
+}
+
+std::string LoadConfiguredMidiFile(
+    const std::filesystem::path &synthConfigPath)
+{
+    std::ifstream input(synthConfigPath);
+    if (!input)
+        throw std::runtime_error("Cannot open synth JSON: " + synthConfigPath.string());
+
+    json root;
+    input >> root;
+    if (!root.is_object() || !root.contains("midiFile") ||
+        !root.at("midiFile").is_string())
+    {
+        throw std::runtime_error(
+            "synth_config.json must contain a string midiFile field");
+    }
+
+    const std::filesystem::path midiPath =
+        root.at("midiFile").get<std::string>();
+    if (midiPath.empty() || midiPath.has_parent_path() ||
+        (midiPath.extension() != ".mid" && midiPath.extension() != ".midi"))
+    {
+        throw std::runtime_error(
+            "midiFile must be a MIDI filename in the config directory");
+    }
+
+    return midiPath.filename().string();
 }
