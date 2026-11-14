@@ -192,18 +192,33 @@ ADSR 包络可以控制：**声音随时间的音量变化，让声音拥有"生
 
 ## Phase 6：MIDI System
 
-状态：📌 Planned
+状态：✅ Completed
 
-目标：让合成器从实验程序变成可演奏乐器。
+目标：让合成器能够读取 MIDI 文件，并将音符事件转换为可编辑的合成器输入。
 
 内容：
-- MIDI Message
-- Note Event / Velocity
-- Pitch Bend / Controller
+- Standard MIDI File Header 和 Track Chunk 解析
+- Delta Time、绝对 Tick 和 MIDI VLQ
+- Note On / Note Off / Running Status
+- Meta Event、Tempo Event 和 End of Track
+- MIDI 音符事件转换为 JSON 音符序列
+- `synth_config.json` 与 `<midi 文件名>_notes.json` 分离配置
+- 根据 MIDI 音符序列驱动 `Voice`、`PolySynth` 和 WAV 输出
 
 ```
-Keyboard → MIDI Event → Synth Engine → Audio Output
+MIDI File → MidiFileReader → MIDI Notes JSON → Synth Engine → WAV Output
 ```
+
+MIDI 文件由 `MidiFileReader::load()` 读取，解析结果会按音轨转换为
+`noteNumber`、`noteVelocity`、`holdTimes` 和 `startTime` 等字段。
+合成器参数保存在 `synth_config.json` 中，运行时与 MIDI 音符 JSON 合并，
+从而可以独立修改音色和音符序列。
+
+当前 Phase 6 主要完成离线 MIDI 文件工作流；实时 MIDI 输入、Pitch Bend
+和 Controller 尚未实现。
+
+教程：
+- [`note/lesson_09/从手写MIDI文件解析器到可配置的MIDI驱动软件合成器.md`](note/lesson_09/从手写MIDI文件解析器到可配置的MIDI驱动软件合成器.md)
 
 ---
 
