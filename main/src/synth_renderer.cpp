@@ -1,7 +1,12 @@
 #include "synth_renderer.h"
+#include "filters/fir_designer.h"
+#include "filters/fir_filter.h"
+#include "filters/iir_designer.h"
+#include "filters/iir_onepole_filter.h"
+#include "filters/iir_biquad_filter.h"
 
-#include "voice.h"
-#include "poly_synth.h"
+#include "synth/voice.h"
+#include "synth/poly_synth.h"
 
 #include <stdexcept>
 #include <string>
@@ -35,6 +40,19 @@ namespace
         throw std::invalid_argument("Unknown curve type: " + name);
     }
 
+    IIRDesigner::BiquadType ParseFilterType(const std::string &name)
+    {
+        if (name == "lowpass")
+            return IIRDesigner::BiquadType::Lowpass;
+        if (name == "highpass")
+            return IIRDesigner::BiquadType::Highpass;
+        if (name == "bandpass")
+            return IIRDesigner::BiquadType::Bandpass;
+        if (name == "notch")
+            return IIRDesigner::BiquadType::Notch;
+        throw std::invalid_argument("Unknown filter type: " + name);
+    }
+
     void ConfigureVoice(
         Voice &voice,
         const TrackConfig &track,
@@ -49,10 +67,21 @@ namespace
             track.adsr.decay,
             track.adsr.sustain,
             track.adsr.release);
+        voice.setVoiceFilter(
+            track.voiceFilter.enabled,
+            track.voiceFilter.amount,
+            track.filter.cutoff,
+            track.filter.resonance,
+            ParseFilterType(track.filter.type),
+            ParseCurveType(track.voiceFilter.curveType),
+            track.voiceFilter.adsr.attack,
+            track.voiceFilter.adsr.decay,
+            track.voiceFilter.adsr.sustain,
+            track.voiceFilter.adsr.release);
     }
 } // namespace
 
-std::vector<float> RenderTrack(
+TrackRenderResult RenderTrack(
     const TrackConfig &track,
     double sampleRate)
 {
@@ -88,9 +117,29 @@ std::vector<float> RenderTrack(
     }
 
     // 与第五章教程保持一致：四参数 generate。
-    return synth.generate(
+    auto buffer = synth.generate(
         noteNums,
         velocities,
         holdTimes,
         startTimes);
+
+    // 对混合后的整条音轨进行低通滤波，每次渲染使用独立的历史状态。
+    TrackRenderResult result;
+
+    result.dry = buffer;
+    result.fir = firFilter(
+        buffer,
+        FIRDesigner::lowpass(
+            track.filter.cutoff,
+            static_cast<float>(sampleRate),
+            101));
+    OnePoleFilter iir(sampleRate, track.filter.cutoff);
+    result.iir = iir.process(buffer);
+    BiquadFilter biquad;
+    biquad.setCoefficients(IIRDesigner::Biquad(
+        ParseFilterType(track.filter.type),
+        track.filter.cutoff, sampleRate, track.filter.resonance));
+    result.biquad = biquad.process(buffer);
+
+    return result;
 }

@@ -4,18 +4,27 @@
 #include "additive_synth.h"
 #include "note.h"
 #include "additive_wavetable_factory.h"
+#include "iir_biquad_filter.h"
+#include "iir_designer.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <vector>
 
 class Voice
 
 {
 public:
-    float sampleRate = 44100.0f;
-    void noteOn(int noteNum, float velocity)
+    Voice()
+    {
+        setSampleRate(44100.0f);
+    }
+    void noteOn(int noteNum, float velocity, uint8_t channel = 0)
     {
         active = true;
+        midiChannel = channel;
+        this->velocity = std::clamp(velocity, 0.0f, 1.0f);
         noteNumber = noteNum;
-        this->velocity = velocity;
 
         note.noteNumber = noteNum;
         note.velocity = velocity;
@@ -27,10 +36,17 @@ public:
             oscillator.setWavetable(wavetableType);
 
         envelope.trigger();
+        filterEnvelope.trigger();
+        filter.reset();
+        keyDown = true;
     }
     void noteOff()
     {
+        if (!active || !keyDown)
+            return;
+        keyDown = false;
         envelope.noteOff();
+        filterEnvelope.noteOff();
     }
     void setAttackTime(float t) { envelope.setAttackTime(t); }
     void setDecayTime(float t) { envelope.setDecayTime(t); }
@@ -78,10 +94,38 @@ public:
         sampleRate = sr;
         envelope.setSampleRate(sr);
         oscillator.setSampleRate(sr);
+        filterEnvelope.setSampleRate(sr);
+    }
+    float getSampleRate() const
+    {
+        return static_cast<float>(sampleRate);
     }
     void setFrequency(float freq)
     {
         oscillator.setFrequency(freq);
+    }
+
+    void setVoiceFilter(
+        bool enabled,
+        float amount,
+        float cutoff,
+        float resonance,
+        IIRDesigner::BiquadType type,
+        CurveType curveType,
+        float attack,
+        float decay,
+        float sustain,
+        float release)
+    {
+        filterEnabled = enabled;
+        filterAmount = std::max(0.0f, amount);
+        filterBaseCutoff = cutoff;
+        filterResonance = resonance;
+        filterType = type;
+        filterEnvelope.setADSRAll(attack, decay, sustain, release);
+        filterEnvelope.setCurveType(curveType);
+        filter.setCoefficients(
+            IIRDesigner::Biquad(filterType, cutoff, sampleRate, resonance));
     }
 
     double process()
@@ -94,10 +138,23 @@ public:
         if (envelope.isFinished())
         {
             active = false;
+            keyDown = false;
             return 0.0;
         }
 
-        return oscillator.process() * env * velocity;
+        double sample = oscillator.process();
+        if (filterEnabled)
+        {
+            const double filterEnv = filterEnvelope.process();
+            const double cutoff = std::clamp(
+                filterBaseCutoff * std::pow(2.0, filterAmount * filterEnv),
+                20.0, sampleRate * 0.49);
+            filter.setCoefficients(
+                IIRDesigner::Biquad(
+                    filterType, cutoff, sampleRate, filterResonance));
+            sample = filter.process(sample);
+        }
+        return sample * env * velocity;
     }
 
     void setWavetable(OscillatorType type)
@@ -134,16 +191,31 @@ public:
         return buffer;
     }
 
+    bool matchesNote(int noteNum, uint8_t channel) const
+    {
+        return active && noteNumber == noteNum && midiChannel == channel;
+    }
+
 private:
     EnvelopeADSR envelope;
     Oscillator oscillator;
     Note note;
+    double sampleRate = 44100.0;
     bool active = false;
     int noteNumber = -1;
     float velocity = 0.0f;
     OscillatorType wavetableType = OscillatorType::Sine;
     bool wavetableTypeSet = false;
+    uint8_t midiChannel = 0;
+    bool keyDown = false;
     CurveType attackCurveType = CurveType::Linear;
     CurveType decayCurveType = CurveType::Linear;
     CurveType releaseCurveType = CurveType::Linear;
+    EnvelopeADSR filterEnvelope;
+    BiquadFilter filter;
+    bool filterEnabled = false;
+    float filterAmount = 2.0f;
+    float filterBaseCutoff = 2000.0f;
+    float filterResonance = 0.70710678f;
+    IIRDesigner::BiquadType filterType = IIRDesigner::BiquadType::Lowpass;
 };

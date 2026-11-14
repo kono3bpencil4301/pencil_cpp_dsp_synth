@@ -34,7 +34,7 @@ public:
     {
         if (noteNums.size() != velocities.size() || noteNums.size() != holdTimes.size())
             throw std::invalid_argument("noteNums, velocities, holdTimes must have the same size");
-        const float sampleRate = voices.empty() ? 44100.0f : voices[0]->sampleRate;
+        const float sampleRate = voices.empty() ? 44100.0f : voices[0]->getSampleRate();
 
         int maxFrames = 0;
         for (size_t i = 0; i < voices.size(); ++i)
