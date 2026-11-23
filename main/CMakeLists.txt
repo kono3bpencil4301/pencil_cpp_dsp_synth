@@ -45,4 +45,20 @@ if(BUILD_TESTING)
     target_include_directories(midi_file_reader_test PRIVATE
         src src/audio src/config src/filters src/midi src/synth)
     add_test(NAME midi_file_reader_test COMMAND midi_file_reader_test)
+# Windows WASAPI playback test
+if(WIN32)
+    add_executable(wasapi_playback_test
+        tests/wasapi_playback_test.cpp
+    )
+
+    target_link_libraries(wasapi_playback_test PRIVATE
+        ole32
+        uuid
+    )
+
+    if(MSVC)
+        target_compile_options(
+            wasapi_playback_test PRIVATE /utf-8
+        )
+    endif()
 endif()

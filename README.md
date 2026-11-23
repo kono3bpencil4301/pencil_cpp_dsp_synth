@@ -234,17 +234,49 @@ MIDI 文件由 `MidiFileReader::load()` 读取，解析结果会按音轨转换�
 
 ## Phase 7：Realtime Audio Engine
 
-状态：📌 Planned
+状态：🚧 In Progress
 
-目标：实现实时声音生成。
+### 目标
 
-内容：
-- Audio Callback / Buffer
-- Latency / Threading
-- Audio Driver
-- Real-time Processing
+基于 Windows 原生 WASAPI 实现实时音频播放，不依赖第三方音频框架。
 
----
+### 技术方案
+
+- C++17
+- Windows Core Audio / WASAPI
+- Shared Mode
+- Event-driven Audio Rendering
+- Float32 PCM
+- Windows SDK
+
+### T7.1：WASAPI Playback Prototype
+
+实现内容：
+
+- 获取 Windows 默认音频输出设备
+- 查询设备混音格式
+- 初始化共享模式音频客户端
+- 使用 `IAudioRenderClient` 获取和提交音频缓冲区
+- 使用事件驱动机制持续生成 PCM
+- 实时合成 440 Hz 正弦波
+- 正常停止音频流并释放设备资源
+
+### 测试结果
+
+- 编译状态：待填写
+- 音频播放状态：待填写
+- 实际采样率：待填写
+- 声道数量：待填写
+- Buffer Frames：待填写
+- 连续播放时长：目标 5 秒
+
+### 下一步
+
+1. 将 WASAPI 设备初始化与播放逻辑封装为 `WasapiAudioDevice`。
+2. 将现有 `VoiceManager::process()` 接入实时音频输出。
+3. 支持 Note On / Note Off 事件。
+4. 优化音频线程与缓冲区管理。
+5. 测试延迟、CPU 占用和实时播放稳定性。
 
 # Technology Stack
 
