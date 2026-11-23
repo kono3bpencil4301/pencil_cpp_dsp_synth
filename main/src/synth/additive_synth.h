@@ -35,7 +35,7 @@ private:
     float sampleRate = 44100.0f;
 
     // 波形表相关
-    std::vector<float> wavetable;
+    const std::vector<float> *wavetable = nullptr;
     float wavetablePos = 0.0f;
 
 public:
@@ -54,18 +54,27 @@ public:
     // 设置波形表（实现位于 additive_wavetable_factory.h，避免循环依赖）
     void setWavetable(OscillatorType type);
 
+    void useWavetable(const std::vector<float> &table)
+    {
+        wavetable = &table;
+        wavetablePos = 0.0f;
+    }
+
     // 输出一个采样点，并推进相位
     float process()
     {
-        if (!wavetable.empty())
+        if (wavetable && !wavetable->empty())
         {
-            float output = wavetable[static_cast<int>(wavetablePos) % wavetable.size()];
-            wavetablePos += static_cast<float>(wavetable.size()) * frequency / sampleRate;
-            if (wavetablePos >= static_cast<float>(wavetable.size()))
-                wavetablePos -= static_cast<float>(wavetable.size());
-            phase += 2.0f * PI * frequency / sampleRate;
-            if (phase >= 2.0f * PI)
-                phase -= 2.0f * PI;
+            const auto &table = *wavetable;
+
+            float output = table[static_cast<std::size_t>(wavetablePos) % table.size()];
+
+            wavetablePos += static_cast<float>(table.size()) *
+                            frequency / sampleRate;
+
+            if (wavetablePos >= table.size())
+                wavetablePos -= static_cast<float>(table.size());
+
             return amplitude * output;
         }
 

@@ -39,6 +39,7 @@ public:
         filterEnvelope.trigger();
         filter.reset();
         keyDown = true;
+        filterUpdateCounter = 0;
     }
     void noteOff()
     {
@@ -146,12 +147,20 @@ public:
         if (filterEnabled)
         {
             const double filterEnv = filterEnvelope.process();
-            const double cutoff = std::clamp(
-                filterBaseCutoff * std::pow(2.0, filterAmount * filterEnv),
-                20.0, sampleRate * 0.49);
-            filter.setCoefficients(
-                IIRDesigner::Biquad(
-                    filterType, cutoff, sampleRate, filterResonance));
+
+            if (filterUpdateCounter == 0)
+            {
+                const double cutoff = std::clamp(filterBaseCutoff * std::pow(2.0, filterAmount * filterEnv), 20.0, sampleRate * 0.49);
+
+                filter.setCoefficients(IIRDesigner::Biquad(filterType, cutoff, sampleRate, filterResonance));
+            }
+
+            ++filterUpdateCounter;
+
+            if (filterUpdateCounter >= kFilterUpdateInterval)
+                filterUpdateCounter = 0;
+
+            // 仍然逐 Sample 处理音频
             sample = filter.process(sample);
         }
         return sample * env * velocity;
@@ -177,8 +186,7 @@ public:
         const int holdSamples = static_cast<int>(holdTime * sampleRate);
         for (int i = 0; i < holdSamples; ++i)
         {
-            buffer.push_back(
-                static_cast<float>(process()));
+            buffer.push_back(static_cast<float>(process()));
         }
 
         noteOff();
@@ -218,4 +226,6 @@ private:
     float filterBaseCutoff = 2000.0f;
     float filterResonance = 0.70710678f;
     IIRDesigner::BiquadType filterType = IIRDesigner::BiquadType::Lowpass;
+    static constexpr int kFilterUpdateInterval = 32;
+    int filterUpdateCounter = 0;
 };

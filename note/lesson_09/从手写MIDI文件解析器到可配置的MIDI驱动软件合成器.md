@@ -511,14 +511,6 @@ f_c[n]=\operatorname{clamp}\left(f_{\mathrm{base}}\cdot2^{A E[n]},\ f_{\min},\ f
 
 从手写 WAV 的那一刻起，C++ 学会了把数字写成声音；而到了这一章，它开始能够读懂别的音乐软件留下的演奏记录了。
 
-### 读者可以继续实践
-
-- 用纸笔手算一组 VLQ，例如 `83 60`，再与 `readVLQ()` 的结果对照。
-- 自行构造一个含两个 Note On、两个 Note Off、一个 Tempo 的最小 MIDI，通过 `parse(std::istream&)` 检查绝对 Tick。
-- 试着移除 `End of Track`，确认 `parseTrack()` 会拒绝这个不完整文件。
-- 修改 `synth_config.json` 的 `wavetable`、`ADSR_config` 与 `type`，观察同一份 `_notes.json` 如何驱动不同的合成参数。
-- 比较 `PPQ=480`、120 BPM 下 Tick 480 的秒数，并思考出现 Tempo Change 时为什么必须分段计算。
-
 ---
 
 ### 格式资料与配图说明
@@ -530,6 +522,6 @@ f_c[n]=\operatorname{clamp}\left(f_{\mathrm{base}}\cdot2^{A E[n]},\ f_{\min},\ f
 - [MIDI Association：Standard MIDI Files](https://midi.org/standard-midi-files)
 - [Standard MIDI File 结构与事件格式说明](https://midi.community/docs/smf/)
 - [Standard MIDI File 规范文本，含 Running Status 与 Meta Event](https://midimusic.github.io/tech/midispec.html)
-- [MathWorks：MIDI 文件消息结构示例](https://fr.mathworks.com/help/audio/ug/convert-midi-files-into-midi-messages.html)（外部视觉参考，未直接转载其图片）
+- [MathWorks：MIDI 文件消息结构示例](https://fr.mathworks.com/help/audio/ug/convert-midi-files-into-midi-messages.html)
 
 **源码核对口径：** 技术接口与渲染架构以本次上传的 `src.zip` 为基础；Header 顺序修复以开发者本轮补充说明为准。`src.zip` 未包含测试源码、CTest 执行日志或修复后的重新打包版本，因此不要将文内有关测试覆盖的开发记录理解为本文作者已重新验证最新本地版本。
