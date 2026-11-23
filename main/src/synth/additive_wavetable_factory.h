@@ -158,22 +158,41 @@ public:
 // ============================================================================
 inline void Oscillator::setWavetable(OscillatorType type)
 {
-    const double freq = (frequency > 0.0f) ? static_cast<double>(frequency) : 440.0;
-    const double sr = static_cast<double>(sampleRate);
+    const double freq =
+        (frequency > 0.0f)
+            ? static_cast<double>(frequency)
+            : 440.0;
+
+    const double sr =
+        static_cast<double>(sampleRate);
+
     switch (type)
     {
     case OscillatorType::Sine:
-        wavetable = AdditiveWavetableFactory::createSineTable(freq, sr);
+        ownedWavetable =
+            AdditiveWavetableFactory::createSineTable(
+                freq, sr);
         break;
+
     case OscillatorType::Square:
-        wavetable = AdditiveWavetableFactory::createSquareTable(freq, sr);
+        ownedWavetable =
+            AdditiveWavetableFactory::createSquareTable(
+                freq, sr);
         break;
+
     case OscillatorType::Sawtooth:
-        wavetable = AdditiveWavetableFactory::createSawtoothTable(freq, sr);
+        ownedWavetable =
+            AdditiveWavetableFactory::createSawtoothTable(
+                freq, sr);
         break;
+
     case OscillatorType::Triangle:
-        wavetable = AdditiveWavetableFactory::createTriangleTable(freq, sr);
+        ownedWavetable =
+            AdditiveWavetableFactory::createTriangleTable(
+                freq, sr);
         break;
     }
-    wavetablePos = 0.0f;
+
+    // 指向自己拥有的波表
+    wavetable = &ownedWavetable;
 }

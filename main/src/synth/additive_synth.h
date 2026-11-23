@@ -33,7 +33,8 @@ private:
     float initialPhase = 0.0f; // 初始相位 (rad)
     float phase = 0.0f;        // 当前累积相位 (rad)
     float sampleRate = 44100.0f;
-
+    int filterUpdateCounter = 0; // 过滤器更新计数器
+    std::vector<float> ownedWavetable;
     // 波形表相关
     const std::vector<float> *wavetable = nullptr;
     float wavetablePos = 0.0f;
